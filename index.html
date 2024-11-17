@@ -261,6 +261,7 @@
             profilesList.innerHTML = "";
             if (query !== "") {
                 db.collection("profiles").where("username", ">=", query).where("username", "<", query + '\uf8ff').get().then(snapshot => {
+                    profilesList.innerHTML = ""; // Clear the list to avoid duplication
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         displayProfileCard(doc.id, data);
