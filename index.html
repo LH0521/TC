@@ -27,10 +27,13 @@
             <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="logout()">Logout</button>
         </div>
 
-        <input type="text" class="form-control" id="search" placeholder="Search profiles">
+        <div class="input-group my-4">
+            <input type="text" class="form-control" id="search" placeholder="Search profiles">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#filtersOffcanvas">Filters</button>
+        </div>
 
         <div class="container mt-5 d-flex flex-wrap justify-content-center" id="profilesList">
-            <!-- User profile cards will be dynamically inserted here -->
         </div>
     </div>
 
@@ -51,7 +54,6 @@
                 <option value="">Select your state</option>
                 <option value="CA">California</option>
                 <option value="NY">New York</option>
-                <!-- Add other states as needed -->
             </select>
         </div>
         <button type="button" class="btn btn-secondary" onclick="hideCreatePage()">Cancel</button>
@@ -75,11 +77,39 @@
                 <option value="">Select your state</option>
                 <option value="CA">California</option>
                 <option value="NY">New York</option>
-                <!-- Add other states as needed -->
             </select>
         </div>
         <button type="button" class="btn btn-secondary" onclick="hideEditPage()">Cancel</button>
         <button type="button" class="btn btn-primary" onclick="editProfile()">Save Changes</button>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 id="filtersOffcanvasLabel">Filters</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-3">
+                <label for="filterAgeRange" class="form-label">Age Range</label>
+                <input type="range" class="form-range" id="filterAgeMin" min="18" max="100" value="18"
+                    oninput="updateAgeRangeDisplay()">
+                <input type="range" class="form-range" id="filterAgeMax" min="18" max="100" value="100"
+                    oninput="updateAgeRangeDisplay()">
+                <span id="ageRangeDisplay">18 - 100</span>
+            </div>
+
+            <div class="mb-3">
+                <label for="filterState" class="form-label">Location</label>
+                <select class="form-select" id="filterState" multiple>
+                    <option value="CA">California</option>
+                    <option value="NY">New York</option>
+                    <option value="TX">Texas</option>
+                    <option value="FL">Florida</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+        </div>
     </div>
 
     <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasProfile" aria-labelledby="offcanvasProfileLabel">
@@ -111,7 +141,6 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Elements
         const pageLanding = document.getElementById("page_landing");
         const pageHome = document.getElementById("page_home");
         const pageCreate = document.getElementById("page_create");
@@ -120,21 +149,22 @@
         const editProfileBtn = document.getElementById("editProfileBtn");
         const searchInput = document.getElementById("search");
         const profilesList = document.getElementById("profilesList");
+        const filterAgeMin = document.getElementById("filterAgeMin");
+        const filterAgeMax = document.getElementById("filterAgeMax");
+        const filterState = document.getElementById("filterState");
 
-        // Authentication state observer
         auth.onAuthStateChanged(user => {
             if (user) {
                 pageLanding.classList.add('d-none');
                 pageHome.classList.remove('d-none');
                 checkUserProfile(user);
-                loadProfiles(); // Load profiles on login
+                loadProfiles();
             } else {
                 pageLanding.classList.remove('d-none');
                 pageHome.classList.add('d-none');
             }
         });
 
-        // Login with Google
         function login() {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).catch(error => {
@@ -142,14 +172,12 @@
             });
         }
 
-        // Logout
         function logout() {
             auth.signOut().catch(error => {
                 console.error("Error during logout", error);
             });
         }
 
-        // Check if user profile exists
         function checkUserProfile(user) {
             const userRef = db.collection('profiles').doc(user.uid);
             userRef.get().then(doc => {
@@ -163,23 +191,19 @@
             });
         }
 
-        // Show Create Page
         function showCreatePage() {
             pageHome.classList.add('d-none');
             pageCreate.classList.remove('d-none');
         }
 
-        // Hide Create Page
         function hideCreatePage() {
             pageCreate.classList.add('d-none');
             pageHome.classList.remove('d-none');
         }
 
-        // Show Edit Page
         function showEditPage() {
             pageHome.classList.add('d-none');
             pageEdit.classList.remove('d-none');
-            // Populate fields with existing profile data
             const user = auth.currentUser;
             const userRef = db.collection('profiles').doc(user.uid);
             userRef.get().then(doc => {
@@ -193,13 +217,11 @@
             });
         }
 
-        // Hide Edit Page
         function hideEditPage() {
             pageEdit.classList.add('d-none');
             pageHome.classList.remove('d-none');
         }
 
-        // Create Profile
         function createProfile() {
             const user = auth.currentUser;
             const username = document.getElementById("createUsername").value;
@@ -208,7 +230,7 @@
 
             if (username && age && state) {
                 db.collection('profiles').doc(user.uid).set({
-                    username: username.toLowerCase(), // store in lowercase for search compatibility
+                    username: username.toLowerCase(),
                     age: age,
                     state: state,
                     profilePicture: user.photoURL || 'https://via.placeholder.com/64'
@@ -221,7 +243,6 @@
             }
         }
 
-        // Edit Profile
         function editProfile() {
             const user = auth.currentUser;
             const username = document.getElementById("editUsername").value;
@@ -230,7 +251,7 @@
 
             if (username && age && state) {
                 db.collection('profiles').doc(user.uid).update({
-                    username: username.toLowerCase(), // store in lowercase for search compatibility
+                    username: username.toLowerCase(),
                     age: age,
                     state: state
                 }).then(() => {
@@ -242,7 +263,6 @@
             }
         }
 
-        // Load Profiles
         function loadProfiles() {
             profilesList.innerHTML = "";
             db.collection("profiles").get().then(snapshot => {
@@ -255,26 +275,37 @@
             });
         }
 
-        // Search profiles live
         searchInput.addEventListener("input", () => {
-            const query = searchInput.value.trim().toLowerCase();
-            profilesList.innerHTML = "";
-            if (query !== "") {
-                db.collection("profiles").where("username", ">=", query).where("username", "<", query + '\uf8ff').get().then(snapshot => {
-                    profilesList.innerHTML = ""; // Clear the list to avoid duplication
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        displayProfileCard(doc.id, data);
-                    });
-                }).catch(error => {
-                    console.error("Error searching profiles", error);
-                });
-            } else {
-                loadProfiles();
-            }
+            applyFilters();
         });
 
-        // Display profile card
+        function applyFilters() {
+            profilesList.innerHTML = "";
+            const query = searchInput.value.trim().toLowerCase();
+            const minAge = parseInt(filterAgeMin.value);
+            const maxAge = parseInt(filterAgeMax.value);
+            const selectedStates = Array.from(filterState.selectedOptions).map(option => option.value);
+
+            db.collection("profiles").get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const isWithinAgeRange = data.age >= minAge && data.age <= maxAge;
+                    const matchesLocation = selectedStates.length === 0 || selectedStates.includes(data.state);
+                    const matchesSearch = query === "" || data.username.includes(query);
+
+                    if (isWithinAgeRange && matchesLocation && matchesSearch) {
+                        displayProfileCard(doc.id, data);
+                    }
+                });
+            }).catch(error => {
+                console.error("Error applying filters", error);
+            });
+        }
+
+        function updateAgeRangeDisplay() {
+            document.getElementById("ageRangeDisplay").textContent = `${filterAgeMin.value} - ${filterAgeMax.value}`;
+        }
+
         function displayProfileCard(id, data) {
             const cardHtml = `
                 <div class="card p-3 m-2" style="width: 22rem;">
@@ -293,7 +324,6 @@
             profilesList.insertAdjacentHTML('beforeend', cardHtml);
         }
 
-        // View profile in offcanvas
         function viewProfile(userId) {
             db.collection('profiles').doc(userId).get().then(doc => {
                 if (doc.exists) {
