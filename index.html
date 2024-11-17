@@ -7,10 +7,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
-        
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
 </head>
 
 <body>
@@ -29,7 +29,8 @@
 
         <input type="text" class="form-control" id="search" placeholder="Search profiles">
 
-        <div class="container mt-5 d-flex justify-content-center" id="profilesList">
+        <div class="container mt-5 d-flex flex-wrap justify-content-center" id="profilesList">
+            <!-- User profile cards will be dynamically inserted here -->
         </div>
     </div>
 
@@ -50,6 +51,7 @@
                 <option value="">Select your state</option>
                 <option value="CA">California</option>
                 <option value="NY">New York</option>
+                <!-- Add other states as needed -->
             </select>
         </div>
         <button type="button" class="btn btn-secondary" onclick="hideCreatePage()">Cancel</button>
@@ -73,6 +75,7 @@
                 <option value="">Select your state</option>
                 <option value="CA">California</option>
                 <option value="NY">New York</option>
+                <!-- Add other states as needed -->
             </select>
         </div>
         <button type="button" class="btn btn-secondary" onclick="hideEditPage()">Cancel</button>
@@ -108,6 +111,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Elements
         const pageLanding = document.getElementById("page_landing");
         const pageHome = document.getElementById("page_home");
         const pageCreate = document.getElementById("page_create");
@@ -117,17 +121,20 @@
         const searchInput = document.getElementById("search");
         const profilesList = document.getElementById("profilesList");
 
+        // Authentication state observer
         auth.onAuthStateChanged(user => {
             if (user) {
                 pageLanding.classList.add('d-none');
                 pageHome.classList.remove('d-none');
                 checkUserProfile(user);
+                loadProfiles(); // Load profiles on login
             } else {
                 pageLanding.classList.remove('d-none');
                 pageHome.classList.add('d-none');
             }
         });
 
+        // Login with Google
         function login() {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).catch(error => {
@@ -135,12 +142,14 @@
             });
         }
 
+        // Logout
         function logout() {
             auth.signOut().catch(error => {
                 console.error("Error during logout", error);
             });
         }
 
+        // Check if user profile exists
         function checkUserProfile(user) {
             const userRef = db.collection('profiles').doc(user.uid);
             userRef.get().then(doc => {
@@ -154,19 +163,23 @@
             });
         }
 
+        // Show Create Page
         function showCreatePage() {
             pageHome.classList.add('d-none');
             pageCreate.classList.remove('d-none');
         }
 
+        // Hide Create Page
         function hideCreatePage() {
             pageCreate.classList.add('d-none');
             pageHome.classList.remove('d-none');
         }
 
+        // Show Edit Page
         function showEditPage() {
             pageHome.classList.add('d-none');
             pageEdit.classList.remove('d-none');
+            // Populate fields with existing profile data
             const user = auth.currentUser;
             const userRef = db.collection('profiles').doc(user.uid);
             userRef.get().then(doc => {
@@ -180,11 +193,13 @@
             });
         }
 
+        // Hide Edit Page
         function hideEditPage() {
             pageEdit.classList.add('d-none');
             pageHome.classList.remove('d-none');
         }
 
+        // Create Profile
         function createProfile() {
             const user = auth.currentUser;
             const username = document.getElementById("createUsername").value;
@@ -199,12 +214,14 @@
                     profilePicture: user.photoURL || 'https://via.placeholder.com/64'
                 }).then(() => {
                     hideCreatePage();
+                    loadProfiles();
                 }).catch(error => {
                     console.error("Error creating profile", error);
                 });
             }
         }
 
+        // Edit Profile
         function editProfile() {
             const user = auth.currentUser;
             const username = document.getElementById("editUsername").value;
@@ -218,12 +235,27 @@
                     state: state
                 }).then(() => {
                     hideEditPage();
+                    loadProfiles();
                 }).catch(error => {
                     console.error("Error updating profile", error);
                 });
             }
         }
 
+        // Load Profiles
+        function loadProfiles() {
+            profilesList.innerHTML = "";
+            db.collection("profiles").get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    displayProfileCard(doc.id, data);
+                });
+            }).catch(error => {
+                console.error("Error loading profiles", error);
+            });
+        }
+
+        // Search profiles live
         searchInput.addEventListener("input", () => {
             const query = searchInput.value.trim().toLowerCase();
             profilesList.innerHTML = "";
@@ -234,9 +266,12 @@
                         displayProfileCard(doc.id, data);
                     });
                 });
+            } else {
+                loadProfiles();
             }
         });
 
+        // Display profile card
         function displayProfileCard(id, data) {
             const cardHtml = `
                 <div class="card p-3 m-2" style="width: 22rem;">
@@ -255,6 +290,7 @@
             profilesList.insertAdjacentHTML('beforeend', cardHtml);
         }
 
+        // View profile in offcanvas
         function viewProfile(userId) {
             db.collection('profiles').doc(userId).get().then(doc => {
                 if (doc.exists) {
