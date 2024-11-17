@@ -91,16 +91,14 @@
         <div class="offcanvas-body">
             <div class="mb-3">
                 <label for="filterAgeRange" class="form-label">Age Range</label>
-                <input type="range" class="form-range" id="filterAgeMin" min="18" max="100" value="18"
-                    oninput="updateAgeRangeDisplay()">
-                <input type="range" class="form-range" id="filterAgeMax" min="18" max="100" value="100"
-                    oninput="updateAgeRangeDisplay()">
-                <span id="ageRangeDisplay">18 - 100</span>
+                <input type="range" class="form-range" id="filterAgeRange" min="18" max="100" value="18" oninput="updateAgeRangeDisplay()">
+                <span id="ageRangeDisplay">18</span>
             </div>
 
             <div class="mb-3">
                 <label for="filterState" class="form-label">Location</label>
-                <select class="form-select" id="filterState" multiple>
+                <select class="form-select" id="filterState">
+                    <option value="">Select your state</option>
                     <option value="CA">California</option>
                     <option value="NY">New York</option>
                     <option value="TX">Texas</option>
@@ -149,8 +147,7 @@
         const editProfileBtn = document.getElementById("editProfileBtn");
         const searchInput = document.getElementById("search");
         const profilesList = document.getElementById("profilesList");
-        const filterAgeMin = document.getElementById("filterAgeMin");
-        const filterAgeMax = document.getElementById("filterAgeMax");
+        const filterAgeRange = document.getElementById("filterAgeRange");
         const filterState = document.getElementById("filterState");
 
         auth.onAuthStateChanged(user => {
@@ -282,15 +279,14 @@
         function applyFilters() {
             profilesList.innerHTML = "";
             const query = searchInput.value.trim().toLowerCase();
-            const minAge = parseInt(filterAgeMin.value);
-            const maxAge = parseInt(filterAgeMax.value);
-            const selectedStates = Array.from(filterState.selectedOptions).map(option => option.value);
+            const age = parseInt(filterAgeRange.value);
+            const selectedState = filterState.value;
 
             db.collection("profiles").get().then(snapshot => {
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const isWithinAgeRange = data.age >= minAge && data.age <= maxAge;
-                    const matchesLocation = selectedStates.length === 0 || selectedStates.includes(data.state);
+                    const isWithinAgeRange = data.age >= age;
+                    const matchesLocation = selectedState === "" || data.state === selectedState;
                     const matchesSearch = query === "" || data.username.includes(query);
 
                     if (isWithinAgeRange && matchesLocation && matchesSearch) {
@@ -303,7 +299,7 @@
         }
 
         function updateAgeRangeDisplay() {
-            document.getElementById("ageRangeDisplay").textContent = `${filterAgeMin.value} - ${filterAgeMax.value}`;
+            document.getElementById("ageRangeDisplay").textContent = `${filterAgeRange.value}`;
         }
 
         function displayProfileCard(id, data) {
